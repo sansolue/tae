@@ -3,16 +3,17 @@ use crate::world::DialogueDef;
 pub struct DialogueState {
     lines: Vec<(String, String)>, // (speaker, text)
     cursor: usize,
+    pub then_set_flag: Option<String>,
 }
 
 impl DialogueState {
-    pub fn start(def: &DialogueDef) -> Self {
+    pub fn start(def: &DialogueDef, then_set_flag: Option<String>) -> Self {
         let lines = def
             .lines
             .iter()
             .map(|l| (l.speaker.clone(), l.text.clone()))
             .collect();
-        Self { lines, cursor: 0 }
+        Self { lines, cursor: 0, then_set_flag }
     }
 
     pub fn current(&self) -> Option<(&str, &str)> {
@@ -29,9 +30,5 @@ impl DialogueState {
         } else {
             false
         }
-    }
-
-    pub fn is_done(&self) -> bool {
-        self.cursor >= self.lines.len()
     }
 }

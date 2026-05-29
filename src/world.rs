@@ -24,16 +24,32 @@ pub struct MapDef {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct Condition {
+    pub flag: String,
+    /// true → flag must be present; false (default) → flag must be absent.
+    #[serde(default)]
+    pub present: bool,
+}
+
+impl Condition {
+    pub fn is_met(&self, flags: &std::collections::HashSet<String>) -> bool {
+        if self.present { flags.contains(&self.flag) } else { !flags.contains(&self.flag) }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct EntityPlacement {
     pub id: String,
     pub x: u32,
     pub y: u32,
+    pub condition: Option<Condition>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TriggerDef {
     pub x: u32,
     pub y: u32,
+    pub condition: Option<Condition>,
     pub action: Action,
 }
 
@@ -42,18 +58,18 @@ pub struct TriggerDef {
 pub enum Action {
     Dialogue {
         id: String,
+        #[serde(default)]
+        then_set_flag: Option<String>,
     },
     MapTransition {
         target_map: String,
         target_x: u32,
         target_y: u32,
+        #[serde(default)]
+        then_set_flag: Option<String>,
     },
     SetFlag {
         flag: String,
-    },
-    Conditional {
-        flag: String,
-        then: Box<Action>,
     },
 }
 
@@ -124,8 +140,17 @@ impl World {
         self.tile_at(x, y) == 1
     }
 
+    /// Returns the first trigger at (x, y) whose condition is met.
     pub fn trigger_at(&self, x: u32, y: u32) -> Option<&TriggerDef> {
-        self.current_map.triggers.iter().find(|t| t.x == x && t.y == y)
+        self.current_map.triggers.iter().find(|t| {
+            t.x == x
+                && t.y == y
+                && t.condition.as_ref().map_or(true, |c| c.is_met(&self.flags))
+        })
+    }
+
+    pub fn entity_active(&self, placement: &EntityPlacement) -> bool {
+        placement.condition.as_ref().map_or(true, |c| c.is_met(&self.flags))
     }
 
     pub fn set_flag(&mut self, flag: &str) {

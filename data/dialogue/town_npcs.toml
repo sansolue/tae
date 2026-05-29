@@ -14,6 +14,13 @@ speaker = "Village Elder"
 text    = "Speak to the guard near the entrance if you wish to pass."
 
 [[dialogue]]
+id = "elder_followup"
+
+[[dialogue.lines]]
+speaker = "Village Elder"
+text    = "You again! Remember — the dungeon is to the east. Safe travels."
+
+[[dialogue]]
 id = "guard_warning"
 
 [[dialogue.lines]]

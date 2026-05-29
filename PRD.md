@@ -78,15 +78,31 @@ id  = "elder"
 x   = 5
 y   = 3
 
+# Entity only visible/collidable when flag is absent (elder hasn't left yet)
+[[entities]]
+id        = "elder"
+x         = 5
+y         = 3
+condition = { flag = "elder_left", absent = true }
+
 [[triggers]]
 x      = 10
 y      = 0
 action = { type = "map_transition", target_map = "dungeon", target_x = 1, target_y = 13 }
 
+# First-time dialogue; sets a flag when it ends
 [[triggers]]
-x      = 5
-y      = 3
-action = { type = "dialogue", id = "elder_intro" }
+x        = 5
+y        = 3
+condition = { flag = "talked_to_elder", absent = true }
+action   = { type = "dialogue", id = "elder_intro", then_set_flag = "talked_to_elder" }
+
+# Follow-up dialogue shown only after the first conversation
+[[triggers]]
+x        = 5
+y        = 3
+condition = { flag = "talked_to_elder", present = true }
+action   = { type = "dialogue", id = "elder_followup" }
 ```
 
 ### `entities/npcs.toml`
@@ -140,14 +156,35 @@ each frame:
 
 ---
 
-## Trigger Actions (MVP)
+## Conditions
+
+A `condition` block can be attached to any **trigger** or **entity placement**. If the condition is not met, the trigger is skipped or the entity is hidden and non-collidable.
+
+```toml
+condition = { flag = "some_flag", present = true }   # fires only when flag IS set
+condition = { flag = "some_flag", absent  = true }   # fires only when flag is NOT set
+```
+
+Multiple triggers at the same tile are evaluated in definition order — the first whose condition passes wins.
+
+---
+
+## Trigger Actions
 
 | Action type       | Effect                                          |
 |-------------------|-------------------------------------------------|
 | `dialogue`        | Opens dialogue overlay; blocks movement         |
 | `map_transition`  | Loads target map, places player at target coord |
 | `set_flag`        | Sets a named boolean flag in world state        |
-| `conditional`     | Fires a sub-action only if a named flag is set  |
+
+All action types accept an optional `then_set_flag` field. The flag is set **after** the action fully completes (e.g., after the last dialogue line is dismissed, after the map transition fires).
+
+```toml
+action = { type = "dialogue", id = "elder_intro", then_set_flag = "talked_to_elder" }
+action = { type = "map_transition", target_map = "dungeon", target_x = 1, target_y = 1, then_set_flag = "entered_dungeon" }
+```
+
+The old `conditional` action type is replaced by the `condition` field on triggers — cleaner and more composable.
 
 ---
 
@@ -184,5 +221,7 @@ each frame:
 3. Walking onto a trigger tile fires the configured action (dialogue or map transition).
 4. Dialogue overlay renders, advances line by line, then closes — returning control to the player.
 5. `map_transition` correctly unloads the current map and loads the target, placing the player at the specified coordinates.
-6. `set_flag` / `conditional` triggers work so a dialogue or transition can be gated on a prior event.
-7. A sample game with two maps and three NPCs ships alongside the engine as the reference content.
+6. Trigger `condition` gates correctly — first matching trigger at a tile fires, others are skipped.
+7. Entity `condition` hides the entity (no render, no collision) when the condition is not met.
+8. `then_set_flag` on any action sets the flag after the action fully completes.
+9. A sample game with two maps and NPCs ships alongside the engine as the reference content, exercising conditions and `then_set_flag`.

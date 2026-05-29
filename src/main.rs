@@ -54,7 +54,11 @@ fn main() -> Result<()> {
         if let Some(ref mut dlg) = active_dialogue {
             if intent == Intent::Confirm {
                 if !dlg.advance() {
+                    let flag = dlg.then_set_flag.clone();
                     active_dialogue = None;
+                    if let Some(f) = flag {
+                        world.set_flag(&f);
+                    }
                 }
             }
         } else {
@@ -75,16 +79,19 @@ fn main() -> Result<()> {
                         .map(|t| t.action.clone())
                     {
                         match trigger::evaluate(&action, &mut world) {
-                            TriggerOutcome::StartDialogue(id) => {
+                            TriggerOutcome::StartDialogue { id, then_set_flag } => {
                                 if let Some(def) = world.dialogues.get(&id) {
-                                    active_dialogue = Some(DialogueState::start(def));
+                                    active_dialogue = Some(DialogueState::start(def, then_set_flag));
                                 }
                             }
-                            TriggerOutcome::MapTransition { map, x, y } => {
+                            TriggerOutcome::MapTransition { map, x, y, then_set_flag } => {
                                 let new_map = loader::load_map(&store, &map)?;
                                 world.current_map = new_map;
                                 player.x = x;
                                 player.y = y;
+                                if let Some(flag) = then_set_flag {
+                                    world.set_flag(&flag);
+                                }
                             }
                             TriggerOutcome::None => {}
                         }

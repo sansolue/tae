@@ -34,8 +34,11 @@ pub fn draw(
         }
     }
 
-    // Entities (NPCs)
+    // Entities (NPCs) — skip those whose condition isn't met
     for placement in &world.current_map.entities {
+        if !world.entity_active(placement) {
+            continue;
+        }
         if let Some(npc) = world.npcs.get(&placement.id) {
             let rx = placement.x as i32 * ts;
             let ry = placement.y as i32 * ts;

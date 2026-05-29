@@ -21,11 +21,12 @@ tiles = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ]
 
-# Elder NPC at (5,5) — inside the little room
+# Elder NPC — hidden once he's left for the dungeon
 [[entities]]
-id = "elder"
-x  = 5
-y  = 5
+id        = "elder"
+x         = 5
+y         = 5
+condition = { flag = "elder_left", present = false }
 
 # Guard near the dungeon entrance
 [[entities]]
@@ -33,13 +34,21 @@ id = "guard"
 x  = 17
 y  = 13
 
-# Talking to the elder
+# First visit: intro dialogue, marks the conversation done
 [[triggers]]
-x      = 5
-y      = 5
-action = { type = "dialogue", id = "elder_intro" }
+x         = 5
+y         = 5
+condition = { flag = "talked_to_elder", present = false }
+action    = { type = "dialogue", id = "elder_intro", then_set_flag = "talked_to_elder" }
 
-# Guard blocks with a flag-gated warning
+# Second visit: follow-up dialogue
+[[triggers]]
+x         = 5
+y         = 5
+condition = { flag = "talked_to_elder", present = true }
+action    = { type = "dialogue", id = "elder_followup" }
+
+# Guard blocks with a warning
 [[triggers]]
 x      = 17
 y      = 13
