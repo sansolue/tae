@@ -1,0 +1,5 @@
+title     = "TAE Sample"
+start_map = "town"
+tile_size = 32
+window_w  = 640
+window_h  = 480

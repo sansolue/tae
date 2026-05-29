@@ -1,0 +1,25 @@
+[[dialogue]]
+id = "elder_intro"
+
+[[dialogue.lines]]
+speaker = "Village Elder"
+text    = "Ah, a traveller! Welcome to our humble village."
+
+[[dialogue.lines]]
+speaker = "Village Elder"
+text    = "The dungeon to the east holds great danger. Only the brave dare enter."
+
+[[dialogue.lines]]
+speaker = "Village Elder"
+text    = "Speak to the guard near the entrance if you wish to pass."
+
+[[dialogue]]
+id = "guard_warning"
+
+[[dialogue.lines]]
+speaker = "Guard"
+text    = "Halt! The dungeon entrance is just to my right."
+
+[[dialogue.lines]]
+speaker = "Guard"
+text    = "You may pass, but do not say I didn't warn you."

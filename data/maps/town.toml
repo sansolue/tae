@@ -1,0 +1,52 @@
+id     = "town"
+width  = 20
+height = 15
+
+# 0 = floor, 1 = wall. 15 rows x 20 cols.
+tiles = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+]
+
+# Elder NPC at (5,5) — inside the little room
+[[entities]]
+id = "elder"
+x  = 5
+y  = 5
+
+# Guard near the dungeon entrance
+[[entities]]
+id = "guard"
+x  = 17
+y  = 13
+
+# Talking to the elder
+[[triggers]]
+x      = 5
+y      = 5
+action = { type = "dialogue", id = "elder_intro" }
+
+# Guard blocks with a flag-gated warning
+[[triggers]]
+x      = 17
+y      = 13
+action = { type = "dialogue", id = "guard_warning" }
+
+# Transition tile — bottom-right gap leads to dungeon
+[[triggers]]
+x      = 18
+y      = 13
+action = { type = "map_transition", target_map = "dungeon", target_x = 1, target_y = 1 }

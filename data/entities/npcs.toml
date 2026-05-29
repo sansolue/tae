@@ -1,0 +1,9 @@
+[[npc]]
+id    = "elder"
+name  = "Village Elder"
+glyph = "E"
+
+[[npc]]
+id    = "guard"
+name  = "Guard"
+glyph = "G"
