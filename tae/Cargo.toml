@@ -1,0 +1,11 @@
+[package]
+name = "tae"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tae-core = { path = "../tae-core" }
+raylib = "5.0"
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+anyhow = "1"

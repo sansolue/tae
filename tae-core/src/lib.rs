@@ -42,7 +42,7 @@ pub fn load(base: &Path) -> Result<FileStore> {
     bail!("No data/ folder or data.tae file found (checked next to executable and working directory)")
 }
 
-fn load_folder(dir: &Path) -> Result<FileStore> {
+pub fn load_folder(dir: &Path) -> Result<FileStore> {
     let mut store = FileStore::new();
     visit_dir(dir, dir, &mut store)?;
     Ok(store)
