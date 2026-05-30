@@ -225,6 +225,169 @@ tae-pack <data_dir> [output.tae]
 
 ---
 
+## Phase 2 — Scenes & Navigation
+
+### Overview
+
+Phase 2 introduces a multi-scene engine. The existing gameplay loop becomes one scene (`Game`) in a scene stack. Every screen — splash, menus, save/load, settings, about, exit confirmation — is a first-class scene with its own input handling and rendering.
+
+---
+
+### Scene Inventory
+
+| Scene | Trigger | Back destination |
+|-------|---------|-----------------|
+| `Splash` | Engine start | `MainMenu` (auto or on any key) |
+| `MainMenu` | After splash; Escape from game (future) | — |
+| `Game` | "New Game" or slot loaded | `MainMenu` (future pause menu) |
+| `SaveScreen` | In-game pause → Save (future) | previous scene |
+| `LoadScreen` | Main menu → Load | `MainMenu` |
+| `Settings` | Main menu → Settings | `MainMenu` |
+| `About` | Main menu → About | `MainMenu` |
+| `ExitConfirm` | Main menu → Exit | `MainMenu` (on No) |
+
+Scene transitions are push/pop on a scene stack. `Escape` pops the current scene; non-reversible transitions (e.g. starting a new game) replace the stack.
+
+---
+
+### Scene Flow
+
+```
+[start]
+  └─► Splash ──auto/key──► MainMenu
+                               ├─ New Game ──────────────────► Game
+                               ├─ Load ──────► LoadScreen ──► Game
+                               ├─ Settings ──► Settings ──► (back)
+                               ├─ About ─────► About ──────► (back)
+                               └─ Exit ──────► ExitConfirm
+                                                  ├─ Yes ──► [quit]
+                                                  └─ No ───► (back)
+```
+
+---
+
+### Navigation Model (all menu scenes)
+
+- **Arrow keys / WASD**: move selection cursor between items or slots.
+- **Enter / Space**: confirm selection.
+- **Escape**: go back (pop scene).
+- **Page Up / Page Down** or **Left/Right on page indicator**: paginate save/load slots.
+- Mouse support: post-phase.
+
+---
+
+### Scene Backgrounds
+
+Each scene that requires a visual background references an asset path inside the data archive. Only static images are supported in Phase 2; webm video is a post-phase stretch goal.
+
+```toml
+# game.toml additions
+
+[splash]
+image    = "ui/splash.png"
+duration = 3.0   # seconds before auto-advancing; 0 = wait for keypress
+
+[main_menu]
+background = "ui/menu_bg.png"
+
+[about]
+image = "ui/about.png"   # full-screen image; Escape or Enter to return
+```
+
+If an image path is absent the scene falls back to a solid colour background.
+
+---
+
+### Save / Load Screen
+
+Slots are displayed as a paginated grid (configurable per game, default 5 per page).
+
+```toml
+# game.toml
+[saves]
+slots_per_page = 5
+```
+
+Each slot shows:
+- Slot number
+- Optional user-provided name (editable on save)
+- Timestamp of last save
+- "Empty" label if unused
+
+**Saving**: selecting an occupied slot prompts "Overwrite?" before writing. Selecting an empty slot saves immediately and opens a name-entry field (optional).
+
+**Loading**: selecting an occupied slot loads the game context and transitions to `Game`. Selecting an empty slot does nothing.
+
+**Game context** (what is saved/loaded) will be fully specified once all gameplay nuances are identified. At minimum it captures everything needed to restore a play session to its exact state.
+
+Save files live outside the data archive, in a platform-appropriate user data directory (not next to the executable).
+
+---
+
+### Settings Screen
+
+Settings are persisted to a config file in the user data directory and applied on next launch (or immediately where feasible).
+
+| Setting | Type | Notes |
+|---------|------|-------|
+| Resolution | Select | List of common resolutions; applies on confirm |
+| Fullscreen | Toggle | Windowed ↔ fullscreen |
+| Volume | Slider (0–100) | Master volume; takes effect when audio is added |
+| Key bindings | Sub-screen | Rebind Move Up/Down/Left/Right and Confirm keys; detect next keypress |
+
+A "Reset to defaults" option is available at the bottom of the settings list.
+
+---
+
+### About Screen
+
+Full-screen image (`ui/about.png`) with no interactive elements. Escape or Enter returns to the previous scene.
+
+---
+
+### Exit Confirmation
+
+Lightweight modal overlay rendered on top of `MainMenu` (not a full scene swap). Two options: **Yes** (quit) and **No** (dismiss). Default selection is **No**.
+
+---
+
+### Architecture Changes
+
+```
+tae/src/
+  scene/
+    mod.rs        — Scene trait, SceneStack, SceneTransition enum
+    splash.rs     — timer + image render
+    main_menu.rs  — item list, cursor, background image
+    game.rs       — wraps existing game loop logic
+    save_load.rs  — paginated slot grid, shared by Save and Load
+    settings.rs   — setting items, key-bind capture sub-mode
+    about.rs      — full-screen image
+    exit_confirm.rs — modal overlay
+  asset.rs        — image loading from FileStore into Raylib textures
+  config.rs       — read/write settings config file (TOML)
+  save.rs         — read/write save slot files; GameContext type (TBD)
+```
+
+`main.rs` is reduced to: init → load assets → push `Splash` → run scene loop.
+
+---
+
+### Phase 2 Acceptance Criteria
+
+1. Engine starts with a splash screen that auto-advances after `duration` seconds (or on any keypress if `duration = 0`).
+2. `MainMenu` renders over a background image with a navigable item list.
+3. "New Game" from the main menu starts a fresh `Game` scene.
+4. "Load" opens `LoadScreen`; selecting an occupied slot restores the game context and enters `Game`.
+5. Save screen shows paginated slots; saving writes a slot file with timestamp and optional name.
+6. "Settings" opens the settings screen; Resolution, Fullscreen, Volume, and Key bindings are all configurable and persisted.
+7. "About" shows a full-screen image; Escape/Enter returns.
+8. "Exit" shows the confirmation modal; Yes quits, No dismisses.
+9. Escape navigates back correctly from every scene.
+10. All background image paths are optional — scenes degrade gracefully to solid colour if the asset is missing.
+
+---
+
 ## MVP Acceptance Criteria
 
 1. Binary starts, finds `data/` folder or `data.tae` archive, opens a Raylib window.
