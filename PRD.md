@@ -73,17 +73,12 @@ tiles  = [
   ...
 ]
 
-[[entities]]
-id  = "elder"
-x   = 5
-y   = 3
-
-# Entity only visible/collidable when flag is absent (elder hasn't left yet)
+# Entity hidden once the flag is set (condition absent by default)
 [[entities]]
 id        = "elder"
 x         = 5
 y         = 3
-condition = { flag = "elder_left", absent = true }
+condition = { flag = "elder_left" }
 
 [[triggers]]
 x      = 10
@@ -131,16 +126,27 @@ text    = "The dungeon to the north holds great danger."
 
 ## Engine Architecture
 
+The project is a Cargo workspace with three crates:
+
+| Crate | Type | Purpose |
+|-------|------|---------|
+| `tae-core` | library | AES-256-GCM encrypt/decrypt, ZIP read, `FileStore`, `get_text` |
+| `tae` | binary | Raylib game runtime |
+| `tae-pack` | binary | Authoring tool — packs `data/` into `data.tae` |
+
+### `tae` module layout
+
 ```
-main.rs
-├── archive.rs      — decrypt + unpack data.tae into memory
-├── loader.rs       — deserialize TOML/JSON/YAML into engine structs
-├── world.rs        — Map, Entity, Trigger types; world state
-├── player.rs       — position, movement, collision
-├── trigger.rs      — trigger evaluation and action dispatch
-├── dialogue.rs     — dialogue state machine (active line, speaker, advance)
-├── renderer.rs     — Raylib draw calls (tiles, entities, dialogue box)
-└── input.rs        — keyboard → intent mapping (Move, Interact, Confirm)
+tae/src/
+  main.rs       — game loop, Raylib init, wires all modules
+  archive.rs    — re-exports tae_core (FileStore, get_text, load)
+  loader.rs     — deserialises FileStore → GameManifest, MapDef, NpcDef, DialogueDef
+  world.rs      — all data types + live World state (flags, current map)
+  player.rs     — grid position, try_move with wall collision
+  input.rs      — keyboard → Intent enum
+  trigger.rs    — evaluates Action, returns TriggerOutcome (carries then_set_flag)
+  dialogue.rs   — line-by-line DialogueState (holds then_set_flag)
+  renderer.rs   — Raylib draw calls: tiles, entities, player, dialogue overlay
 ```
 
 ### Core Loop
@@ -162,7 +168,7 @@ A `condition` block can be attached to any **trigger** or **entity placement**. 
 
 ```toml
 condition = { flag = "some_flag", present = true }   # fires only when flag IS set
-condition = { flag = "some_flag", absent  = true }   # fires only when flag is NOT set
+condition = { flag = "some_flag" }                   # fires only when flag is NOT set (default)
 ```
 
 Multiple triggers at the same tile are evaluated in definition order — the first whose condition passes wins.
@@ -206,17 +212,23 @@ The old `conditional` action type is replaced by the `condition` field on trigge
 
 ---
 
-## Encryption
+## Encryption & Packing
 
-- Algorithm: **AES-256-GCM**.
-- Key derivation: hardcoded key constant in the binary for MVP (rotate to env-var or key file post-MVP).
-- A separate `tae-pack` CLI subcommand (or script) encrypts a plain folder into `data.tae` at authoring time.
+- Algorithm: **AES-256-GCM** with a fixed nonce (MVP). Rotate per-archive post-MVP.
+- Key: hardcoded constant in `tae-core` — single source of truth shared by both `tae` (decrypt) and `tae-pack` (encrypt).
+- `tae-pack` is a **separate binary** (not a subcommand) so it is never shipped alongside the game runtime.
+
+```sh
+tae-pack <data_dir> [output.tae]
+# e.g. tae-pack data/ data.tae
+```
 
 ---
 
 ## MVP Acceptance Criteria
 
-1. Binary starts, finds and decrypts `data/data.tae`, opens a Raylib window.
+1. Binary starts, finds `data/` folder or `data.tae` archive, opens a Raylib window.
+   `tae-pack` can pack a `data/` folder into a `data.tae` that the runtime loads correctly.
 2. Player can move across a tile map using arrow keys with wall collision.
 3. Walking onto a trigger tile fires the configured action (dialogue or map transition).
 4. Dialogue overlay renders, advances line by line, then closes — returning control to the player.
