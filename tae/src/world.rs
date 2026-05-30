@@ -1,6 +1,35 @@
 use std::collections::{HashMap, HashSet};
 use serde::Deserialize;
 
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct SplashConfig {
+    pub image: Option<String>,
+    #[serde(default = "default_splash_duration")]
+    pub duration: f32,
+}
+fn default_splash_duration() -> f32 { 3.0 }
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct MainMenuConfig {
+    pub background: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct AboutConfig {
+    pub image: Option<String>,
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SavesConfig {
+    #[serde(default = "default_slots_per_page")]
+    pub slots_per_page: usize,
+}
+fn default_slots_per_page() -> usize { 5 }
+impl Default for SavesConfig {
+    fn default() -> Self { Self { slots_per_page: default_slots_per_page() } }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct GameManifest {
     pub title: String,
@@ -8,6 +37,14 @@ pub struct GameManifest {
     pub tile_size: u32,
     pub window_w: u32,
     pub window_h: u32,
+    #[serde(default)]
+    pub splash: SplashConfig,
+    #[serde(default)]
+    pub main_menu: MainMenuConfig,
+    #[serde(default)]
+    pub about: AboutConfig,
+    #[serde(default)]
+    pub saves: SavesConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
